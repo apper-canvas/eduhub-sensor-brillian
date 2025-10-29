@@ -8,13 +8,14 @@ const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navigation = [
+const navigation = [
     { name: "Dashboard", href: "/", icon: "LayoutDashboard", current: location.pathname === "/" },
     { name: "Students", href: "/students", icon: "Users", current: location.pathname.startsWith("/students") },
     { name: "Classes", href: "/classes", icon: "BookOpen", current: location.pathname.startsWith("/classes") },
     { name: "Grades", href: "/grades", icon: "GraduationCap", current: location.pathname.startsWith("/grades") },
     { name: "Attendance", href: "/attendance", icon: "Calendar", current: location.pathname.startsWith("/attendance") },
-    { name: "Reports", href: "/reports", icon: "BarChart3", current: location.pathname.startsWith("/reports") }
+    { name: "Reports", href: "/reports", icon: "BarChart3", current: location.pathname.startsWith("/reports") },
+    { name: "Staff", href: "/staff", icon: "Users", current: location.pathname.startsWith("/staff") }
   ];
 
   const handleNavigation = (href) => {

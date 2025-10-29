@@ -10,6 +10,7 @@ const Classes = lazy(() => import("@/components/pages/Classes"));
 const Grades = lazy(() => import("@/components/pages/Grades"));
 const Attendance = lazy(() => import("@/components/pages/Attendance"));
 const Reports = lazy(() => import("@/components/pages/Reports"));
+const Staff = lazy(() => import("@/components/pages/Staff"));
 const NotFound = lazy(() => import("@/components/pages/NotFound"));
 
 // Loading fallback component
@@ -74,10 +75,14 @@ const mainRoutes = [
   {
     path: "attendance",
     element: withSuspense(Attendance),
-  },
+},
   {
     path: "reports",
     element: withSuspense(Reports),
+  },
+  {
+    path: "staff",
+    element: withSuspense(Staff),
   },
   {
     path: "*",
