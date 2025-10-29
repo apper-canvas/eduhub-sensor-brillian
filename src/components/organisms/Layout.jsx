@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
+import { useAuth } from "@/layouts/Root";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
+  const { logout } = useAuth();
 const navigation = [
     { name: "Dashboard", href: "/", icon: "LayoutDashboard", current: location.pathname === "/" },
     { name: "Students", href: "/students", icon: "Users", current: location.pathname.startsWith("/students") },
@@ -23,7 +24,7 @@ const navigation = [
     setSidebarOpen(false);
   };
 
-  // Desktop Sidebar
+// Desktop Sidebar
   const DesktopSidebar = () => (
     <div className="hidden lg:flex lg:flex-shrink-0">
       <div className="flex flex-col w-64">
@@ -57,13 +58,23 @@ const navigation = [
               </button>
             ))}
           </nav>
+          <div className="px-2 pb-4">
+            <Button
+              onClick={logout}
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <ApperIcon name="LogOut" className="mr-3 h-5 w-5" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </div>
   );
 
   // Mobile Sidebar
-  const MobileSidebar = () => (
+const MobileSidebar = () => (
     <>
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -110,6 +121,16 @@ const navigation = [
                   </button>
                 ))}
               </nav>
+              <div className="px-2 mt-4">
+                <Button
+                  onClick={logout}
+                  variant="ghost"
+                  className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <ApperIcon name="LogOut" className="mr-4 h-6 w-6" />
+                  Logout
+                </Button>
+              </div>
             </div>
           </div>
         </div>

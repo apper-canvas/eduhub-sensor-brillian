@@ -1,58 +1,194 @@
-import documentsData from "@/services/mockData/documents.json";
+import { getApperClient } from '@/services/apperClient';
+import { toast } from 'react-toastify';
 
-let documents = [...documentsData];
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const TABLE_NAME = 'document_c';
 
 export const documentService = {
   async getAll() {
-    await delay(300);
-    return [...documents];
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "title_c" } },
+          { field: { Name: "type_c" } },
+          { field: { Name: "file_url_c" } },
+          { field: { Name: "upload_date_c" } },
+          { field: { Name: "student_id_c" } }
+        ]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching documents:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
   async getById(id) {
-    await delay(200);
-    const document = documents.find(d => d.Id === parseInt(id));
-    if (!document) {
-      throw new Error("Document not found");
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.getRecordById(TABLE_NAME, id, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "title_c" } },
+          { field: { Name: "type_c" } },
+          { field: { Name: "file_url_c" } },
+          { field: { Name: "upload_date_c" } },
+          { field: { Name: "student_id_c" } }
+        ]
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "Document not found");
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching document ${id}:`, error?.response?.data?.message || error);
+      throw error;
     }
-    return { ...document };
   },
 
   async getByStudentId(studentId) {
-    await delay(250);
-    return documents.filter(d => parseInt(d.studentId) === parseInt(studentId));
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "title_c" } },
+          { field: { Name: "type_c" } },
+          { field: { Name: "file_url_c" } },
+          { field: { Name: "upload_date_c" } },
+          { field: { Name: "student_id_c" } }
+        ],
+        where: [{ FieldName: "student_id_c", Operator: "EqualTo", Values: [parseInt(studentId)] }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching documents by student:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
   async create(documentData) {
-    await delay(400);
-    const maxId = documents.length > 0 ? Math.max(...documents.map(d => d.Id)) : 0;
-    const newDocument = {
-      ...documentData,
-      Id: maxId + 1,
-      uploadDate: documentData.uploadDate || new Date().toISOString().split("T")[0]
-    };
-    documents.push(newDocument);
-    return { ...newDocument };
+    try {
+      const apperClient = getApperClient();
+      
+      const payload = {
+        records: [{
+          Name: documentData.title_c,
+          title_c: documentData.title_c,
+          type_c: documentData.type_c,
+          file_url_c: documentData.file_url_c,
+          upload_date_c: documentData.upload_date_c || new Date().toISOString().split('T')[0],
+          student_id_c: documentData.student_id_c?.Id || parseInt(documentData.student_id_c)
+        }]
+      };
+
+      const response = await apperClient.createRecord(TABLE_NAME, payload);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to create document:`, failed);
+          failed.forEach(record => {
+            if (record.message) toast.error(record.message);
+          });
+          throw new Error("Failed to create document");
+        }
+        return response.results[0].data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error creating document:", error?.response?.data?.message || error);
+      throw error;
+    }
   },
 
   async update(id, documentData) {
-    await delay(400);
-    const index = documents.findIndex(d => d.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error("Document not found");
+    try {
+      const apperClient = getApperClient();
+      
+      const payload = {
+        records: [{
+          Id: parseInt(id),
+          Name: documentData.title_c,
+          title_c: documentData.title_c,
+          type_c: documentData.type_c,
+          file_url_c: documentData.file_url_c,
+          upload_date_c: documentData.upload_date_c,
+          student_id_c: documentData.student_id_c?.Id || parseInt(documentData.student_id_c)
+        }]
+      };
+
+      const response = await apperClient.updateRecord(TABLE_NAME, payload);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to update document:`, failed);
+          failed.forEach(record => {
+            if (record.message) toast.error(record.message);
+          });
+          throw new Error("Failed to update document");
+        }
+        return response.results[0].data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating document:", error?.response?.data?.message || error);
+      throw error;
     }
-    documents[index] = { ...documents[index], ...documentData, Id: parseInt(id) };
-    return { ...documents[index] };
   },
 
   async delete(id) {
-    await delay(300);
-    const index = documents.findIndex(d => d.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error("Document not found");
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.deleteRecord(TABLE_NAME, {
+        RecordIds: [parseInt(id)]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to delete document:`, failed);
+          throw new Error("Failed to delete document");
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting document:", error?.response?.data?.message || error);
+      throw error;
     }
-    const deletedDocument = documents.splice(index, 1)[0];
-    return { ...deletedDocument };
   }
 };

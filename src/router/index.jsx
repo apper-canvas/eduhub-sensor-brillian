@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { getRouteConfig } from "./route.utils";
+import Root from "@/layouts/Root";
 import Layout from "@/components/organisms/Layout";
 
 // Lazy load all page components
@@ -11,6 +13,12 @@ const Grades = lazy(() => import("@/components/pages/Grades"));
 const Attendance = lazy(() => import("@/components/pages/Attendance"));
 const Reports = lazy(() => import("@/components/pages/Reports"));
 const Staff = lazy(() => import("@/components/pages/Staff"));
+const Login = lazy(() => import("@/components/pages/Login"));
+const Signup = lazy(() => import("@/components/pages/Signup"));
+const Callback = lazy(() => import("@/components/pages/Callback"));
+const ErrorPage = lazy(() => import("@/components/pages/ErrorPage"));
+const ResetPassword = lazy(() => import("@/components/pages/ResetPassword"));
+const PromptPassword = lazy(() => import("@/components/pages/PromptPassword"));
 const NotFound = lazy(() => import("@/components/pages/NotFound"));
 
 // Loading fallback component
@@ -42,60 +50,118 @@ const LoadingFallback = () => (
   </div>
 );
 
-// Wrap components with Suspense
-const withSuspense = (Component) => (
-  <Suspense fallback={<LoadingFallback />}>
-    <Component />
-  </Suspense>
-);
+// Helper to create route with suspense and access config
+const createRoute = ({ path, index, element, access, children, ...meta }) => {
+  let configPath;
+  if (index) {
+    configPath = "/";
+  } else {
+    configPath = path.startsWith('/') ? path : `/${path}`;
+  }
+
+  const config = getRouteConfig(configPath);
+  const finalAccess = access || config?.allow;
+
+  const route = {
+    ...(index ? { index: true } : { path }),
+    element: element ? (
+      <Suspense fallback={<LoadingFallback />}>{element}</Suspense>
+    ) : element,
+    handle: {
+      access: finalAccess,
+      ...meta,
+    },
+  };
+
+  if (children && children.length > 0) {
+    route.children = children;
+  }
+
+  return route;
+};
 
 // Define main routes
 const mainRoutes = [
-  {
+  createRoute({
     path: "",
     index: true,
-    element: withSuspense(Dashboard),
-  },
-  {
+    element: <Dashboard />,
+  }),
+  createRoute({
     path: "students",
-    element: withSuspense(Students),
-  },
-  {
+    element: <Students />,
+  }),
+  createRoute({
     path: "students/:id",
-    element: withSuspense(StudentProfile),
-  },
-  {
+    element: <StudentProfile />,
+  }),
+  createRoute({
     path: "classes",
-    element: withSuspense(Classes),
-  },
-  {
+    element: <Classes />,
+  }),
+  createRoute({
     path: "grades",
-    element: withSuspense(Grades),
-  },
-  {
+    element: <Grades />,
+  }),
+  createRoute({
     path: "attendance",
-    element: withSuspense(Attendance),
-},
-  {
+    element: <Attendance />,
+  }),
+  createRoute({
     path: "reports",
-    element: withSuspense(Reports),
-  },
-  {
+    element: <Reports />,
+  }),
+  createRoute({
     path: "staff",
-    element: withSuspense(Staff),
-  },
-  {
+    element: <Staff />,
+  }),
+  createRoute({
     path: "*",
-    element: withSuspense(NotFound),
-  },
+    element: <NotFound />,
+  }),
+];
+
+// Authentication routes
+const authRoutes = [
+  createRoute({
+    path: "login",
+    element: <Login />,
+  }),
+  createRoute({
+    path: "signup",
+    element: <Signup />,
+  }),
+  createRoute({
+    path: "callback",
+    element: <Callback />,
+  }),
+  createRoute({
+    path: "error",
+    element: <ErrorPage />,
+  }),
+  createRoute({
+    path: "prompt-password/:appId/:emailAddress/:provider",
+    element: <PromptPassword />,
+  }),
+  createRoute({
+    path: "reset-password/:appId/:fields",
+    element: <ResetPassword />,
+  }),
 ];
 
 // Create router configuration
 const routes = [
   {
     path: "/",
-    element: <Layout />,
-    children: mainRoutes,
+    element: <Root />,
+    children: [
+      {
+        path: "/",
+        element: <Layout />,
+        children: mainRoutes,
+      },
+      ...authRoutes,
+    ],
   },
 ];
 

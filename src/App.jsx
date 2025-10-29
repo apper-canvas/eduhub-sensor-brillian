@@ -1,26 +1,26 @@
-import React from "react";
+import { Provider } from "react-redux";
 import { RouterProvider } from "react-router-dom";
-import { router } from "@/router";
 import { ToastContainer } from "react-toastify";
+import { router } from "@/router";
+import { store } from "@/store";
+import React from "react";
 
 function App() {
   return (
-    <div className="App">
+    <Provider store={store}>
       <RouterProvider router={router} />
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          style={{ zIndex: 9999 }}
-/>
-    </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </Provider>
   );
 }
 

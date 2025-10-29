@@ -1,172 +1,339 @@
-import staffData from '@/services/mockData/staff.json';
+import { getApperClient } from '@/services/apperClient';
+import { toast } from 'react-toastify';
 
-// Simulate API delay
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// In-memory storage (simulates database)
-let staffStore = [...staffData];
+const TABLE_NAME = 'staff_c';
 
 export const staffService = {
-  // Get all staff members
   async getAll() {
-    await delay(500);
-    return [...staffStore];
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching staff:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
-  // Get staff member by ID
   async getById(id) {
-    await delay(300);
-    const staff = staffStore.find(s => s.Id === parseInt(id));
-    if (!staff) {
-      throw new Error('Staff member not found');
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.getRecordById(TABLE_NAME, id, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ]
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "Staff member not found");
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching staff ${id}:`, error?.response?.data?.message || error);
+      throw error;
     }
-    return { ...staff };
   },
 
-  // Create new staff member
   async create(staffData) {
-    await delay(600);
-    
-    // Validate required fields
-    if (!staffData.fullName || !staffData.email || !staffData.role) {
-      throw new Error('Full name, email, and role are required');
+    try {
+      const apperClient = getApperClient();
+      
+      const payload = {
+        records: [{
+          Name: staffData.full_name_c,
+          full_name_c: staffData.full_name_c,
+          email_c: staffData.email_c,
+          role_c: staffData.role_c,
+          department_c: staffData.department_c || '',
+          phone_number_c: staffData.phone_number_c || '',
+          hire_date_c: staffData.hire_date_c || new Date().toISOString().split('T')[0],
+          status_c: staffData.status_c || 'Active'
+        }]
+      };
+
+      const response = await apperClient.createRecord(TABLE_NAME, payload);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to create staff:`, failed);
+          failed.forEach(record => {
+            if (record.message) toast.error(record.message);
+          });
+          throw new Error("Failed to create staff member");
+        }
+        return response.results[0].data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error creating staff:", error?.response?.data?.message || error);
+      throw error;
     }
-
-    // Check for duplicate email
-    if (staffStore.some(s => s.email.toLowerCase() === staffData.email.toLowerCase())) {
-      throw new Error('A staff member with this email already exists');
-    }
-
-    // Generate new ID
-    const maxId = staffStore.length > 0 
-      ? Math.max(...staffStore.map(s => s.Id))
-      : 0;
-    
-    const newStaff = {
-      Id: maxId + 1,
-      fullName: staffData.fullName.trim(),
-      email: staffData.email.trim().toLowerCase(),
-      role: staffData.role,
-      department: staffData.department?.trim() || '',
-      phoneNumber: staffData.phoneNumber?.trim() || '',
-      hireDate: staffData.hireDate || new Date().toISOString(),
-      status: staffData.status || 'Active',
-    };
-
-    staffStore.push(newStaff);
-    return { ...newStaff };
   },
 
-  // Update existing staff member
   async update(id, staffData) {
-    await delay(600);
-    
-    const index = staffStore.findIndex(s => s.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error('Staff member not found');
+    try {
+      const apperClient = getApperClient();
+      
+      const payload = {
+        records: [{
+          Id: parseInt(id),
+          Name: staffData.full_name_c,
+          full_name_c: staffData.full_name_c,
+          email_c: staffData.email_c,
+          role_c: staffData.role_c,
+          department_c: staffData.department_c,
+          phone_number_c: staffData.phone_number_c,
+          hire_date_c: staffData.hire_date_c,
+          status_c: staffData.status_c
+        }]
+      };
+
+      const response = await apperClient.updateRecord(TABLE_NAME, payload);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to update staff:`, failed);
+          failed.forEach(record => {
+            if (record.message) toast.error(record.message);
+          });
+          throw new Error("Failed to update staff member");
+        }
+        return response.results[0].data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating staff:", error?.response?.data?.message || error);
+      throw error;
     }
-
-    // Validate required fields
-    if (!staffData.fullName || !staffData.email || !staffData.role) {
-      throw new Error('Full name, email, and role are required');
-    }
-
-    // Check for duplicate email (excluding current staff)
-    if (staffStore.some(s => 
-      s.Id !== parseInt(id) && 
-      s.email.toLowerCase() === staffData.email.toLowerCase()
-    )) {
-      throw new Error('A staff member with this email already exists');
-    }
-
-    const updatedStaff = {
-      ...staffStore[index],
-      fullName: staffData.fullName.trim(),
-      email: staffData.email.trim().toLowerCase(),
-      role: staffData.role,
-      department: staffData.department?.trim() || staffStore[index].department,
-      phoneNumber: staffData.phoneNumber?.trim() || staffStore[index].phoneNumber,
-      hireDate: staffData.hireDate || staffStore[index].hireDate,
-      status: staffData.status || staffStore[index].status,
-    };
-
-    staffStore[index] = updatedStaff;
-    return { ...updatedStaff };
   },
 
-  // Delete staff member
   async delete(id) {
-    await delay(400);
-    
-    const index = staffStore.findIndex(s => s.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error('Staff member not found');
-    }
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.deleteRecord(TABLE_NAME, {
+        RecordIds: [parseInt(id)]
+      });
 
-    const deleted = staffStore[index];
-    staffStore.splice(index, 1);
-    return { ...deleted };
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      if (response.results) {
+        const failed = response.results.filter(r => !r.success);
+        if (failed.length > 0) {
+          console.error(`Failed to delete staff:`, failed);
+          throw new Error("Failed to delete staff member");
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting staff:", error?.response?.data?.message || error);
+      throw error;
+    }
   },
 
-  // Search staff by query
   async search(query) {
-    await delay(400);
-    const lowerQuery = query.toLowerCase().trim();
-    
-    if (!lowerQuery) {
-      return [...staffStore];
-    }
+    try {
+      if (!query) return this.getAll();
 
-    return staffStore.filter(staff => 
-      staff.fullName.toLowerCase().includes(lowerQuery) ||
-      staff.email.toLowerCase().includes(lowerQuery) ||
-      staff.department.toLowerCase().includes(lowerQuery) ||
-      staff.role.toLowerCase().includes(lowerQuery)
-    );
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ],
+        whereGroups: [{
+          operator: "OR",
+          subGroups: [{
+            conditions: [
+              { fieldName: "full_name_c", operator: "Contains", values: [query] },
+              { fieldName: "email_c", operator: "Contains", values: [query] },
+              { fieldName: "department_c", operator: "Contains", values: [query] },
+              { fieldName: "role_c", operator: "Contains", values: [query] }
+            ],
+            operator: "OR"
+          }]
+        }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error searching staff:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
-  // Filter staff by role
   async filterByRole(role) {
-    await delay(300);
-    
-    if (!role || role === 'all') {
-      return [...staffStore];
+    try {
+      if (!role || role === 'all') return this.getAll();
+
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ],
+        where: [{ FieldName: "role_c", Operator: "EqualTo", Values: [role] }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error filtering staff by role:", error?.response?.data?.message || error);
+      return [];
     }
-
-    return staffStore.filter(staff => staff.role === role);
   },
 
-  // Get staff by department
   async getByDepartment(department) {
-    await delay(300);
-    return staffStore.filter(staff => 
-      staff.department.toLowerCase() === department.toLowerCase()
-    );
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ],
+        where: [{ FieldName: "department_c", Operator: "EqualTo", Values: [department] }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error getting staff by department:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
-  // Get active staff only
   async getActive() {
-    await delay(300);
-    return staffStore.filter(staff => staff.status === 'Active');
+    try {
+      const apperClient = getApperClient();
+      const response = await apperClient.fetchRecords(TABLE_NAME, {
+        fields: [
+          { field: { Name: "Name" } },
+          { field: { Name: "full_name_c" } },
+          { field: { Name: "email_c" } },
+          { field: { Name: "role_c" } },
+          { field: { Name: "department_c" } },
+          { field: { Name: "phone_number_c" } },
+          { field: { Name: "hire_date_c" } },
+          { field: { Name: "status_c" } }
+        ],
+        where: [{ FieldName: "status_c", Operator: "EqualTo", Values: ["Active"] }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error getting active staff:", error?.response?.data?.message || error);
+      return [];
+    }
   },
 
-  // Get staff statistics
   async getStats() {
-    await delay(200);
-    
-    return {
-      total: staffStore.length,
-      active: staffStore.filter(s => s.status === 'Active').length,
-      onLeave: staffStore.filter(s => s.status === 'On Leave').length,
-      inactive: staffStore.filter(s => s.status === 'Inactive').length,
-      byRole: {
-        teachers: staffStore.filter(s => s.role === 'Teacher').length,
-        administrators: staffStore.filter(s => s.role === 'Administrator').length,
-        counselors: staffStore.filter(s => s.role === 'Counselor').length,
-        itSupport: staffStore.filter(s => s.role === 'IT Support').length,
-      },
-    };
+    try {
+      const allStaff = await this.getAll();
+
+      return {
+        total: allStaff.length,
+        active: allStaff.filter(s => s.status_c === 'Active').length,
+        onLeave: allStaff.filter(s => s.status_c === 'On Leave').length,
+        inactive: allStaff.filter(s => s.status_c === 'Inactive').length,
+        byRole: {
+          teachers: allStaff.filter(s => s.role_c === 'Teacher').length,
+          administrators: allStaff.filter(s => s.role_c === 'Administrator').length,
+          counselors: allStaff.filter(s => s.role_c === 'Counselor').length,
+          itSupport: allStaff.filter(s => s.role_c === 'IT Support').length,
+        },
+      };
+    } catch (error) {
+      console.error("Error getting staff stats:", error?.response?.data?.message || error);
+      return {
+        total: 0,
+        active: 0,
+        onLeave: 0,
+        inactive: 0,
+        byRole: {
+          teachers: 0,
+          administrators: 0,
+          counselors: 0,
+          itSupport: 0,
+        },
+      };
+    }
   },
 };
